@@ -1,0 +1,15 @@
+{
+    "restartable": "rs",
+    "ignore": [
+      ".git",
+      "node_modules/**/node_modules",
+      "types",
+      "src/assets/javascript",
+      "src/contexts"
+    ],
+    "verbose": true,
+    "env": {
+      "NODE_ENV": "development"
+    },
+    "ext": "js,json,ts"
+  }

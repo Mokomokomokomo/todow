@@ -1,0 +1,456 @@
+.tooltip {
+  position: absolute;
+  background-color: rgba(245 245 245);
+  z-index: 99;
+}
+
+.tooltip.top {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.tooltip.bottom {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.tooltip.left {
+  top: 50%;
+  right: 100%;
+  transform: translateY(-50%);
+}
+.tooltip.right {
+  top: 50%;
+  left: 100%;
+  transform: translateY(-50%);
+}
+
+.tooltip-pointer {
+  background-color: inherit;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.tooltip-pointer.bottom {
+  border-right: 1px solid black;
+  border-bottom: 1px solid black;
+}
+.tooltip-pointer.top {
+  border-top: 1px solid black;
+  border-left: 1px solid black;
+}
+.tooltip-pointer.right {
+  border-top: 1px solid black;
+  border-right: 1px solid black;
+}
+.tooltip-pointer.left {
+  border-left: 1px solid black;
+  border-bottom: 1px solid black;
+}
+
+.tooltip-content {
+  position: absolute;
+  display: flex;
+  gap: 5px;
+  padding: 5px;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.tooltip.vertical .tooltip-content {
+  flex-direction: column;
+  align-items: center;
+}
+.tooltip.horizontal .tooltip-content {
+  flex-direction: row;
+  align-items: center;
+}
+
+.nav {
+  position: relative;
+  width: 100%;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 10px;
+  padding-right: 10px;
+  background-color: var(--green);
+  box-shadow: -1px -5px 10px 2px;
+  z-index: 1;
+}
+
+.nav_icon {
+  width: 40px;
+  height: 40px;
+}
+
+.nav_icon img {
+  width: 100%;
+}
+
+.timedate {
+  display: flex;
+  gap: 12px;
+}
+
+.timedate .date span {
+  color: red;
+  margin: 0px 6px;
+}
+
+.timedate .time span {
+  color: black;
+  margin: 0px 4px;
+}
+
+.user_actions {
+  display: flex;
+  gap: 12px;
+  flex-grow: 1;
+  justify-content: flex-end;
+}
+
+/* Content CSS */
+.content {
+  display: flex;
+  flex-direction: row;
+}
+
+.main_content {
+  flex-grow: 1;
+}
+.main_content.no_notes {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.note {
+  display: flex;
+  flex-direction: column;
+  margin: 20px;
+  width: 400px;
+  height: 500px;
+  border: 1px solid black;
+  background-color: #fefefe;
+}
+
+.note > #note-header {
+  height: 40px;
+  background-color: var(--dark-gray);
+}
+
+.note > #note-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 15px 10px;
+  gap: 8px;
+  flex-grow: 1;
+}
+
+.note > #note-body > #datetime {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 25px;
+  gap: 6px;
+}
+
+#datetime > .label {
+  font-size: 18px;
+}
+
+#note-body select {
+  width: 90px;
+  height: 100%;
+  font-size: inherit;
+  letter-spacing: 1px;
+  text-indent: 5px;
+}
+
+#note-body select#day {
+  width: 60px;
+}
+
+.color-picker, .color-option {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border: 1px solid black;
+  background-color: var(--dark-gray);
+  border-radius: 50%;
+}
+
+.color-picker > .mask, .color-option > .mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: transparent;
+}
+
+.color-picker > .mask:hover, .color-option > .mask:hover {
+  transition: all 200ms ease-in;
+  background-color: #b7b7b7a8;
+}
+
+.color-picker > #color-options {
+  position: absolute;
+  width: 40px;
+  top: 100%;
+  left: 50%;
+  transform: translate(-50%, 50%);
+  height: fit-content;
+  min-height: 40px;
+  border: 1px solid black;
+  z-index: 1;
+}
+
+.note #content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 15px;
+  flex-grow: 1;
+}
+
+#content .section {
+  height: 25px;
+  width: 30px;
+  text-align: center;
+  font-weight: 600;
+  font-size: inherit;
+}
+
+.cw.text-input {
+  position: relative;
+}
+
+.cw.text-input > .character-counter {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 30px;
+  height: 100%;
+  font-size: 12px;
+  top: 0;
+  right: 5px;
+}
+
+.select-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+}
+
+.select-input label, .select-input .label {
+  font-size: 18px;
+}
+
+.select-input select {
+  flex-grow: 1;
+}
+
+.character-counter > .counter-current {
+  transform: translate(-10%, -30%);
+}
+
+.character-counter > .divider {
+  position: absolute;
+  left: 48%;
+  top: 50%;
+  width: 80%;
+  transform: translate(-50%, 0) rotate(300deg);
+  border-top: 1px solid black;
+}
+
+.character-counter > .counter-limit {
+  transform: translate(10%, 30%);
+}
+
+.create-group {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -120%);
+  width: 250px;
+  height: 35px;
+  padding: 5px;
+  background-color: rgba(245 245 245);
+  box-shadow: 0px 3px 6px -5px;
+  display: flex;
+}
+
+.create-group input[type="text"] {
+  flex-grow: 1;
+}
+
+.create-group input:focus-visible {
+  outline: none;
+  background-color: rgb(250 250 250);
+  border: 2px solid black;
+}
+
+.create-group input[type="button"] {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0px 4px;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 21em;
+  height: calc(100vh - 50px);
+  background-color: var(--gray);
+  overflow-x: hidden;
+  transition: width 300ms ease-in;
+}
+
+.sidebar .nav_button {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 4px;
+  height: 35px;
+  cursor: default;
+  background-color: var(--gray);
+  border: 1px solid var(--gray);
+}
+
+.sidebar .nav_button:hover {
+  transition: border 200ms ease-in,
+              border-radius 200ms ease-in,
+              background-color 200ms ease-in;
+  border: 1px solid black;
+  border-radius: 2px;
+  background-color: var(--dark-gray);
+
+}
+
+.sidebar .nav_button span {
+  display: flex;
+  align-items: center;
+  height: inherit;
+  padding: 8px;
+  font-size: 18px;
+  white-space: nowrap;
+}
+
+.sidebar .user_actions {
+  flex-direction: column;
+  flex-grow: 0;
+  width: inherit;
+  padding: 25px 8px;
+  box-shadow: -8px -6px 9px 0px;
+  gap: 4px;
+}
+
+.sidebar .grouped_notes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  flex-grow: 1;
+  padding: 25px 8px;
+}
+
+.sidebar .no_notes {
+  font-size: 20px;
+}
+
+/* Shrinked Sidebar Style */
+.sidebar.shrink {
+  width: 56px;
+}
+
+
+/* Todo Styles */
+.todo {
+  display: flex;
+  gap: 16px;
+}
+
+.todo-time {
+  display: grid;
+  grid-template-columns: auto;
+  grid-template-rows: auto;
+  gap: 3px;
+  align-self: flex-start;
+}
+.todo .flow {
+  width: 16px;
+  grid-row: 1 / span 2;
+}
+.todo .flow svg {
+  width: 100%;
+  height: 100%;
+}
+.todo .time-from, .todo .time-to {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+#note-body .time-cycle {
+  width: 44px;
+  height: 20px;
+  font-size: 15px;
+  font-weight: 600;
+  text-indent: 0px;
+  letter-spacing: unset;
+} 
+
+.todo-time .time-input {
+  width: 30px;
+  height: 20px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.todo-description {
+  flex-grow: 1;
+}
+.todo-description textarea {
+  width: 100%;
+  padding: 6px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Warning Styles */
+.warning {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: calc(100% - 20px);
+  padding: 12px;
+  font-size: 16px;
+  background-color: rgb(240 240 180 / 50%);
+  border: 1px solid rgb(180 180 130);
+  border-radius: 2px;
+}
+.warning button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: transparent;
+  border: none;
+  font-size: 18px;
+  color: rgb(150 150 130);
+  cursor: pointer;
+}
