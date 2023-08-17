@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Sidebar from "../../components/sidebar";
-import { CreateNote } from "./Notes";
+import CreateNote from "./form/CreateNote";
 
 function Content() {
     const [showCreateNote, setShowCreateNote] = useState(false);
