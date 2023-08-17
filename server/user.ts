@@ -1,27 +1,23 @@
-import { pbkdf2Sync, randomBytes, randomUUID } from 'node:crypto';
+import { pbkdf2Sync, randomBytes } from 'node:crypto';
 import { Router } from "express";
 import { ConnectionConfig, TYPES as td } from "tedious";
 import Queries from "./queries";
-import {JwtPayload, sign, verify} from 'jsonwebtoken';
-import { TokenObj, UserObj } from '../types/server';
+import {JwtPayload, TokenExpiredError, sign, verify} from 'jsonwebtoken';
+import { UserObj } from '../types/server';
 
-const createToken = async (userid: number, transact: Queries): Promise<{token: string, uuid: string}> => {
-    const key = randomBytes(32).toString('hex');
+const createToken = async (userid: number): Promise<string> => {
     const token = sign({
         userid: userid,
-    }, key, {
-        expiresIn: (3 * 60 * 60),
+        role: 'user',
+        
+    }, process.env.SECRET_KEY as string, {
+        issuer: "todow",
+        subject: `${userid}`,
+        expiresIn: (12 * 60 * 60),
     });
-    let uuid = randomUUID();
 
-    await transact.insert_once('dbo.tokens', [
-        {column: 'userid', type: td.Int, value: userid},
-        {column: 'token', type: td.VarChar, value: token},
-        {column: 'key', type: td.VarChar, value: key},
-        {column: 'uuid', type: td.VarChar, value: uuid}
-    ]);
 
-    return {token, uuid};
+    return token;
 }
 
 function userRouter(conn: ConnectionConfig) {
@@ -29,34 +25,16 @@ function userRouter(conn: ConnectionConfig) {
     let transact = new Queries(conn);
 
     router.post('/validate', async (req, res) => {
+        let cookies = req.cookies;
+        let {token} = req.cookies;
+
         try {
-            let cookies = req.cookies;
-
             if(cookies.token) {
-                let {token} = req.cookies;
-                let uuid = req.body.uuid;
-                console.table({token, uuid});
-
-                let data = await transact.select('dbo.tokens', ['userid', 'token', 'key'], [
-                    {column: 'uuid', type: td.VarChar, value: uuid}
-                ]);
-
-                if (data.length == 0) {
-                    console.log('No Rows Found');
-                    res.json({success: false});
-                }
-
-                let serverToken = transact.convertDataToObj(data) as TokenObj;
-
-                let payload = verify(token, serverToken.key) as JwtPayload;
-                if(payload['userid'] != serverToken.userid) {
-                    console.log('Token Invalid: userid mismatch');
-                    res.json({success: false});
-                }
+                let payload = verify(token, process.env.SECRET_KEY as string) as JwtPayload;
 
                 // get relevant user data
-                data = await transact.select('dbo.user', [], [
-                    {column: 'id', type: td.Int, value: serverToken.userid}
+                let data = await transact.select('dbo.user', [], [
+                    {column: 'id', type: td.Int, value: payload['userid']}
                 ], 1);
 
                 if (data.length == 0) {
@@ -76,10 +54,36 @@ function userRouter(conn: ConnectionConfig) {
                 });
             }
             else {
-                console.log('No Rows Found');
+                console.log('No Token Found');
                 res.json({success: false});
             }
 
+        }
+        catch (e) {
+            if (e instanceof TokenExpiredError) {
+                console.log(`Token expired on ${e.expiredAt}.`);
+                res.clearCookie('token');
+            }
+            else {
+                console.log(e);
+            }
+            
+            res.json({
+                success: false,
+            })
+        }
+    });
+
+    router.post('/logout',async (req, res) => {
+        let token = req.cookies.token as string;
+        try {
+            if(token) {
+                res.clearCookie('token');
+
+                res.json({
+                    success: true
+                });
+            }
         }
         catch (e) {
             console.log(e);
@@ -110,14 +114,13 @@ function userRouter(conn: ConnectionConfig) {
             }
 
             // create token
-            let {token, uuid} = await createToken(user.id, transact);
+            let token = await createToken(user.id);
 
             res.cookie('token', token, {httpOnly: true});
 
             res.json({
                 success: true,
                 userid: user.id,
-                uuid: uuid
             })
         }
         catch (e) {
@@ -140,26 +143,12 @@ function userRouter(conn: ConnectionConfig) {
                 {column: 'email', type: td.VarChar, value: req.body['email']}
             ]);
 
-            const key = randomBytes(32).toString('hex');
-            const token = sign({
-                userid: userid,
-            }, key, {
-                expiresIn: (3 * 60 * 60),
-            });
-            let uuid = randomUUID();
-
-            await transact.insert_once('dbo.tokens', [
-                {column: 'userid', type: td.Int, value: userid},
-                {column: 'token', type: td.VarChar, value: token},
-                {column: 'key', type: td.VarChar, value: key},
-                {column: 'uuid', type: td.VarChar, value: uuid}
-            ]);
+            let token = createToken(userid);
 
             res.cookie('token', token, {httpOnly: true});
             
             res.json({
                 success: true,
-                uuid,
                 userid
             });
         }
