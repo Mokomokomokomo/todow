@@ -1,6 +1,6 @@
 import { SetState, NoteState, GroupState, SetContentParams, section } from ".";
 import {getDateTime} from '../../../assets/javascript/Time';
-import { configureStore, createSlice } from "@reduxjs/toolkit";
+import { configureStore, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 const copyObject = (obj: any) => {
     let copy: any = {};
@@ -22,8 +22,8 @@ export const initSection: section = {
         tc: 'am'
     },
     time_to: {
-        hour: getDateTime(1).hour,
-        minute: getDateTime().minute,
+        hour: '',
+        minute: '',
         tc: 'am'
     },
     description: ''
@@ -31,7 +31,6 @@ export const initSection: section = {
 
 export const initNoteForm: NoteState = {
     title: '',
-    description: '',
     group: "",
     sched_date: getDateTime(),
     content: [initSection],
@@ -43,6 +42,40 @@ const initGroupState: GroupState = {
     new_group: "",
     isTooltipShown: false
 }
+
+// Async Thunks
+const createNote = createAsyncThunk(
+    'form/create',
+    async ({}, state) => {
+        // Validate Form
+        let note = state.getState() as NoteState;
+
+        let incompleteSections = [];
+        for (let section of note.content) {
+            if (section.description && section.time_from.hour && section.time_from.minute) {
+                continue;
+            }
+
+            incompleteSections.push(section.id);
+        }
+
+        if (incompleteSections.length > 0) {
+            return incompleteSections;
+        }
+
+        let res = await fetch('/api/notes/create', {
+            headers: {
+                "Content-Type": "application/json",
+            },
+            method: "post",
+        }).then(dat => dat.json());
+
+        console.log(res);
+        return 1;
+    }
+)
+
+
 
 // Form Context
 const formSlice = createSlice({
@@ -79,7 +112,13 @@ const formSlice = createSlice({
                     state.content = [...content.slice(0, id+1), ...content.slice(id+2)];
                 }
             }
-        }
+        },
+    },
+    extraReducers(builder) {
+        builder.addCase(createNote.fulfilled, (state, action) => {
+            console.log(action.payload);
+            state;
+        });
     },
 });
 

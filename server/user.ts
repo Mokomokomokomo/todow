@@ -4,6 +4,7 @@ import { ConnectionConfig, TYPES as td } from "tedious";
 import Queries from "./queries";
 import {JwtPayload, TokenExpiredError, sign, verify} from 'jsonwebtoken';
 import { UserObj } from '../types/server';
+import { Column } from '../types/server/queries';
 
 const createToken = async (userid: number): Promise<string> => {
     const token = sign({
@@ -32,10 +33,12 @@ function userRouter(conn: ConnectionConfig) {
             if(cookies.token) {
                 let payload = verify(token, process.env.SECRET_KEY as string) as JwtPayload;
 
+                let where: Column<UserObj>[] =  [
+                    {name: 'id', type: td.Int, value: payload['userid']}
+                ]
+
                 // get relevant user data
-                let data = await transact.select('dbo.user', [], [
-                    {column: 'id', type: td.Int, value: payload['userid']}
-                ], 1);
+                let data = await transact.select('dbo.user', [], where, 1);
 
                 if (data.length == 0) {
                     console.log('No Rows Found');
@@ -70,7 +73,7 @@ function userRouter(conn: ConnectionConfig) {
             
             res.json({
                 success: false,
-            })
+            });
         }
     });
 
@@ -98,7 +101,7 @@ function userRouter(conn: ConnectionConfig) {
 
         try {
             let data = await transact.select("dbo.user", [], [
-                {column: 'username', type: td.VarChar, value: username}
+                {name: 'username', type: td.VarChar, value: username}
             ], 1);
 
             if (data.length == 0) {
@@ -137,10 +140,10 @@ function userRouter(conn: ConnectionConfig) {
             let hash = pbkdf2Sync(req.body['password'], salt, 10000, 32, "sha256");
 
             let userid = await transact.insert_once("dbo.user", [
-                {column: 'username', type: td.VarChar, value: req.body['username']},
-                {column: 'password', type: td.VarChar, value: hash.toString('hex')},
-                {column: 'salt', type: td.VarChar, value: salt.toString('hex')},
-                {column: 'email', type: td.VarChar, value: req.body['email']}
+                {name: 'username', type: td.VarChar, value: req.body['username']},
+                {name: 'password', type: td.VarChar, value: hash.toString('hex')},
+                {name: 'salt', type: td.VarChar, value: salt.toString('hex')},
+                {name: 'email', type: td.VarChar, value: req.body['email']}
             ]);
 
             let token = createToken(userid);
