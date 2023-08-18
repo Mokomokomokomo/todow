@@ -13,8 +13,8 @@ class Queries {
 
     private prepParams (data: Column[], prefix = '') {
         let prepped = data.map(c => {
-            if(c && c.column) {
-                return `@${prefix ? prefix+'_' : ''}${c.column}`;
+            if(c && c.name) {
+                return `@${prefix ? prefix+'_' : ''}${c.name}`;
             }
             else {
                 return undefined;
@@ -37,9 +37,26 @@ class Queries {
         return field.split('.').map(sf => `[${sf}]`).join('.');
     }
 
-    convertDataToObj(columns: Column[]) {
-        let obj = columns.reduce((obj, curr) => {
-            let name = curr.column;
+    /**
+     * Converts an array of Column Objects into a singular object containing the 
+     * field name as keys and the field value as values. This function is used due 
+     * to objects being easier to manipulate than arrays.
+     * @param data Array of Column Objects
+     * @example
+     *  ```ts
+     *      let data = [
+     *          {field: 'name', value: 'Alice', type: TP.VarChar},
+     *          {field: 'id', value: 3, type: TP.BigInt}
+     *      ]
+     *      let obj = convertDataToObj<User>(data)
+     *      console.log(obj.name) // 'Alice'
+     *      console.log(obj.id) // 3
+     *      console.log(obj.notAProp) //undefined 
+     *  ```
+     */
+    convertDataToObj<T>(data: Column[]): T {
+        let obj = data.reduce((obj, curr) => {
+            let name = curr.name;
             let value = curr.value;
 
             return {
@@ -48,7 +65,7 @@ class Queries {
             };
         }, {});
 
-        return obj;
+        return obj as T;
     }
 
     /**
@@ -74,7 +91,7 @@ class Queries {
         if (where && where.length > 0) {
             prepCond = this.prepParams(where, 'cond');
             wrappedConds = where.map((cond, index) => { 
-                return this.wrapField(cond.column)+' = '+prepCond[index]
+                return this.wrapField(cond.name)+' = '+prepCond[index]
             }).join(' and ');
         }
 
@@ -98,17 +115,17 @@ class Queries {
             // add data type and values for where conditions (if they exist)
             if(where && prepCond.length > 0) {
                 where.forEach(cond => {
-                    request.addParameter(`cond_${cond.column}`, cond.type, cond.value)
+                    request.addParameter(`cond_${cond.name}`, cond.type, cond.value)
                 });
             }
 
             request.on("row", (columns) => {
                 let data: Column[] = columns.map(column => {
                     let {value, metadata} = column;
-                    let {colName} = metadata;
-                    let type = metadata.type.name as keyof TediousTypes;
+                    let {colName: name} = metadata;
+                    let type = td[metadata.type.name as keyof TediousTypes];
 
-                    return {column: colName, type: td[type], value};
+                    return {name, type, value};
                 });
 
                 resolve(data);
@@ -127,7 +144,7 @@ class Queries {
 
     /**
      * 
-     * @param table - every table must be prefixed by their db indexing type i.e. (dbo) 
+     * @param table - every table must be prefixed by their db indexing type i.e. (dbo => dbo.user) 
      * @param data each element contains an array containing three subelements in order: column_name, type, value
      */
     insert_once (table: string, data: Column[]) {
@@ -142,7 +159,7 @@ class Queries {
 
                 // wrap in brackets to avoid collision of reserved keywords
                 let wrappedTable = table.split('.').map(f => `[${f}]`).join('.');
-                let wrappedColumns = data.map(c => `[${c.column}]`).join(',');
+                let wrappedColumns = data.map(c => `[${c.name}]`).join(',');
 
                 let sql = (
                     `insert into ${wrappedTable}(${wrappedColumns})
@@ -168,7 +185,7 @@ class Queries {
                 // add types
                 data.forEach((c) => {
                     request.addParameter(
-                        c.column, 
+                        c.name, 
                         c.type,
                         c.value
                     );
@@ -195,11 +212,11 @@ class Queries {
                 let prepCond = this.prepParams(where, 'cond');
 
                 let setStr = data.map((c, i) => {
-                    return `${c.column}=${params[i]}`
+                    return `${c.name}=${params[i]}`
                 }).join(',');
 
                 let wrappedConds = where.map((cond, index) => { 
-                    return this.wrapField(cond.column)+' = '+prepCond[index]
+                    return this.wrapField(cond.name)+' = '+prepCond[index]
                 }).join(' and ');
 
                 let sql = (
@@ -224,7 +241,7 @@ class Queries {
                 // add the values to the parametized request
                 data.forEach(c => {
                     request.addParameter(
-                        c.column,
+                        c.name,
                         c.type,
                         c.value
                     );
@@ -233,7 +250,7 @@ class Queries {
                 // add the values of conditions to parametized request
                 where.forEach(c => {
                     request.addParameter(
-                        `cond_${c.column}`,
+                        `cond_${c.name}`,
                         c.type,
                         c.value
                     );
@@ -243,6 +260,48 @@ class Queries {
             });
 
             conn.connect();
+        });
+
+        return trans;
+    }
+
+    delete (table: string, where: Column[]) {
+        let conn = new Connection(this.config);
+
+        let trans = new Promise<number>((resolve, reject) => {
+            conn.on("connect", (err) => {
+                if (err) reject(err);
+                
+                let wrappeedTable = this.wrapField(table);
+                let prepCond = this.prepParams(where);
+
+                let wrappedConds = where.map((cond, index) => { 
+                    return this.wrapField(cond.name)+' = '+prepCond[index]
+                }).join(' and ');
+
+                let sql = `DELETE FROM ${wrappeedTable} WHERE ${wrappedConds}`;
+
+                let request = new Request(sql, (err, rowCount) => {
+                    if (err) {
+                        console.log("sql: "+sql);
+                        reject(err);
+                    }
+
+                    console.log(`Delete query executed in ${wrappeedTable}`);
+                    if(rowCount > 0) {
+                        console.log(`Deleted ${rowCount} rows`);
+
+                        conn.close();
+                        resolve(rowCount);
+                    }
+                });
+
+                where.forEach(cond => {
+                    request.addParameter(cond.name, cond.type, cond.value);
+                });
+
+                conn.execSql(request);
+            });
         });
 
         return trans;
