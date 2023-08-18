@@ -34,6 +34,11 @@ const getProcess = (field: string, type: "string" | "int" | "float" = "string") 
     return undefined;
 }
 
+if (!process.env.SECRET_KEY) {
+    console.error("JWT secret key was not found in dotenv file at the root folder. Please ensure that one is provided for security reasons.");
+    process.exit(1);
+}
+
 async function start() {
     let port = getProcess('PORT', "int") as number || 3000;
 
