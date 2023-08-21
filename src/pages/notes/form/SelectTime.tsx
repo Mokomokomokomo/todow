@@ -27,11 +27,13 @@ function SelectTime({s_id}: {s_id: number}) {
         if(value.length > 2) {
             return;
         }
+
         
         let range = parentElement!.className.replace('-','_') as 'time_from' | 'time_to';
         let name = e.currentTarget.name as 'hour' | 'minute';        
         let toInt = parseInt(value) || 0;
 
+        
         if(!isNaN(toInt) || value == '') {
             let limitVal = Math.min((name == 'hour' ? 12 : 59), toInt);
             

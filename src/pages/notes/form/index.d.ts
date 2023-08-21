@@ -1,4 +1,4 @@
-import { Datetime, Time } from "../../../../types/client/Time"
+import { Datetime, Time } from "../../../assets/javascript/Time"
 
 export type RGBAValueType = "numerical" | "hex"
 
@@ -23,10 +23,6 @@ export interface SetState<O> {
     value: any
 }
 
-export interface CreateNoteProps {
-    maxTitleLength?: number
-}
-
 export interface section {
     id: number
     time_from: Time
@@ -36,7 +32,6 @@ export interface section {
 
 export interface NoteState {
     title: string
-    description?: string
     content: section[]
     sched_date: Datetime
     color?: string
@@ -49,8 +44,17 @@ export interface GroupState {
     isTooltipShown: boolean
 }
 
+export interface CreateNoteProps {
+    maxTitleLength?: number
+    submitForm: (form: NoteState) => Promise<number[] | undefined>
+}
+
 export interface SetContentParams {
     id: number,
     params?: SetState<section>
     remove?: boolean 
+}
+
+export interface SubmitProps {
+    submitForm: (form: NoteState) => Promise<number[] | undefined>
 }

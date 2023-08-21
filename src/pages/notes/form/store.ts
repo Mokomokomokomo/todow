@@ -85,7 +85,10 @@ const formSlice = createSlice({
         setForm: (state, {payload}: {payload: SetState<NoteState>}) => {
             let {field, value} = payload;
 
-            state[field] = value;
+            return {
+                ...state,
+                [field]: value
+            }
         },
         setContent: (state, {payload}: {payload: SetContentParams}) => {
             let {id, params, remove} = payload;
@@ -108,7 +111,7 @@ const formSlice = createSlice({
 
                     content.push(new_section);
                 }
-                else if(content[id].description.length == 0 && nextSection.description.length == 0) {
+                else if(content[id].description.length == 0 && nextSection?.description.length == 0) {
                     state.content = [...content.slice(0, id+1), ...content.slice(id+2)];
                 }
             }
@@ -118,6 +121,7 @@ const formSlice = createSlice({
         builder.addCase(createNote.fulfilled, (state, action) => {
             console.log(action.payload);
             state;
+            
         });
     },
 });

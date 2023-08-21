@@ -12,7 +12,7 @@ import Group from "./Group";
 import NoteContent from "./NoteContent";
 import Submit from "./Submit";
 
-function CreateNote({maxTitleLength = 20}: CreateNoteProps) {
+function CreateNote({maxTitleLength = 20, submitForm}: CreateNoteProps) {
     let colorOptions = [
         '#db6666',
         '#5690d7',
@@ -33,7 +33,7 @@ function CreateNote({maxTitleLength = 20}: CreateNoteProps) {
                     <Group  />
                     <NoteContent />
                 </div>
-                <Submit />
+                <Submit submitForm={submitForm} />
             </form>
         </Provider>
     )

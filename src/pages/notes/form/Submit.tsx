@@ -1,6 +1,6 @@
 import { useSelector } from "react-redux";
 import { CNState } from "./store";
-import {ConvertOptions, RGBA} from '.';
+import {ConvertOptions, RGBA, SubmitProps} from '.';
 import { useEffect, useState } from "react";
 
 const splitByLength = (str: string, length: number) => {
@@ -71,14 +71,32 @@ const convertHexToRGBA = (hex: string, options: ConvertOptions = {}): string | R
     } as RGBA;
 }
 
-function Submit() {
-    let color = useSelector<CNState, string>(state => state.form.color!);
-    let shade = convertHexToRGBA(color) as RGBA;
+function Submit({submitForm}: SubmitProps) {
+    let {color, sched_date, content, title, group} = useSelector<CNState, CNState['form']>(state => state.form);
+    let shade = convertHexToRGBA(color!) as RGBA;
     let [bg, setBG] = useState(color);
     
     useEffect(() => {
         setBG(color);
     }, [color]);
+
+
+    const submitHandler = async (e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
+
+        let incompleteSections = await submitForm({
+            title,
+            content,
+            group,
+            sched_date,
+            color
+        });
+
+        if (incompleteSections && incompleteSections.length > 0) {
+            alert(`Incomplete sections ${incompleteSections.join(', ')}`);
+            return;
+        }
+    }
 
     const darken = () => {
         shade.adjust(-35)
@@ -95,7 +113,7 @@ function Submit() {
     } as React.CSSProperties;
 
     return (
-        <div className="cw-center" style={style} id="submit-note" onMouseEnter={darken} onMouseLeave={lighten}>
+        <div className="cw-center" style={style} id="submit-note" onMouseEnter={darken} onMouseLeave={lighten} onClick={submitHandler}>
             <span>Create</span>
         </div>
     )
