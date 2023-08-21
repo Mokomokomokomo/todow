@@ -15,6 +15,7 @@ import { EntryServer } from './src/entry-server';
 
 // import api or server routes here
 import user from './server/user';
+import note from './server/note';
 
 const getProcess = (field: string, type: "string" | "int" | "float" = "string") => {
     let value = process.env[field];
@@ -137,8 +138,9 @@ async function start() {
 
     });
 
-    // call all api routes here simply call the imported method as is
+    // call all api routes here
     app.use('/api/user', user(dbConfig));
+    app.use('/api/note', note(dbConfig));
 
     app.listen(port, () => {
         console.log('Server started at http://localhost:3000/');

@@ -1,5 +1,5 @@
 import { NoteState, section } from "../../src/pages/notes/form"
-import { Datetime } from "../../src/assets/javascript/Time"
+import { Datetime, Time } from "../../src/assets/javascript/Time"
 
 export interface TokenObj {
     userid: number,
@@ -24,6 +24,9 @@ export interface NoteObj{
     group?: string
 }
 
-export interface SectionObj extends section {
+export interface SectionObj {
     note_id: number
+    description: string
+    time_from: string
+    time_to?: string
 }

@@ -1,5 +1,5 @@
 import { section } from '../../src/pages/notes/NoteContent'
-import { Datetime } from './Time'
+import { Datetime } from '../../src/assets/javascript/Time'
 
 export type ReactNode = React.JSX.Element | React.JSX.Element[]
 export type SetState<T> = React.Dispatch<React.SetStateAction<T>>
