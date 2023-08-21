@@ -1,5 +1,5 @@
 import { Request, Connection, ConnectionConfig, TYPES as td, TediousTypes } from 'tedious';
-import { Column } from '../types/server/queries';
+import { Column, Data } from '../types/server/queries';
 
 class Queries {
     private config: ConnectionConfig
@@ -194,6 +194,53 @@ class Queries {
                 conn.execSql(request);
             });
 
+            conn.connect();
+        });
+
+        return trans;
+    }
+
+    insert_batch (table: string, columns: Column[], data: Data<typeof columns>[]) {
+        let conn = new Connection(this.config);
+
+        let trans = new Promise<number>((resolve, reject) => {
+            conn.on('connect', (error) => {
+                if (error) reject(error);
+                
+                let wrappedTable = this.wrapField(table);
+
+                let batch = conn.newBulkLoad(wrappedTable, (error) => {
+                    if (error) throw error;
+
+                    conn.reset((error) => {
+                        if (error) reject (error);
+
+                        let request = new Request('select @@IDENTITY', (error) => {
+                            if (error) reject(error);
+    
+                            conn.close();
+                        });
+    
+                        request.on('row', (columns) => {
+                            resolve(columns[0].value);
+                        });
+
+                        conn.execSql(request);
+                    });
+                });
+
+                columns.forEach(column => {
+                    let {name, type, nullable = false} = column;
+                    batch.addColumn(name, type, {nullable});
+                });
+
+                data.forEach(row => {
+                    batch.addRow({...row});
+                });
+
+                conn.execBulkLoad(batch);
+            });
+            
             conn.connect();
         });
 
