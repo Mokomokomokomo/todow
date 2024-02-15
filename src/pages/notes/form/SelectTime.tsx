@@ -1,68 +1,105 @@
-import { useDispatch, useSelector } from "react-redux";
-import FlowSVG from "../../../components/UseSVG";
-import { CNDispatch, CNState, setContent } from "./store";
-import { NoteState } from ".";
+import { useDispatch } from "react-redux";
+// import FlowSVG from "../../../components/UseSVG";
+import { CNDispatch, setForm } from "./store";
+import { useEffect, useState } from "react";
 
-function SelectTime({s_id}: {s_id: number}) {
-    let {content, color} = useSelector<CNState, NoteState>(state => state.form);
-    let section = content[s_id];
+function SelectTime({sched_date}: {sched_date: string}) {
+    let dateObj = new Date(sched_date);
     let dispatch = useDispatch<CNDispatch>();
+    const [meridiem, setMeridiem] = useState<"am"|"pm">(dateObj.getHours() < 12 ? "am" : "pm");
+    const [time, setTime] = useState(() => {
+        let binaryHour = dateObj.getHours() - (meridiem == "pm" ? 12 : 0); 
 
-    const setTC = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        let {value, parentElement} = e.currentTarget;
-        let range = parentElement?.className.replace('-', '_') as 'time_from' | 'time_to';
+        return {
+            hour: String(binaryHour).padStart(2,'0'),
+            minutes: String(dateObj.getMinutes()).padStart(2,'0')
+        }
+    });
 
-        dispatch(setContent({
-            id: s_id, 
-            params: {
-                field: range,
-                value: { ...section[range], tc: value }
-            }
+
+    useEffect(() => {
+        // parse to Date object
+        let newDate = new Date(sched_date);
+        
+        let {hour, minutes} = time;
+        if (hour == '') {
+            hour = '01'
+        }
+        if (minutes == '') {
+            minutes = '00';
+        }
+
+        // convert meridiem hours to military hours
+        let intHour = parseInt(hour);
+        if (meridiem == 'pm' && intHour < 12) { //military time can't be 24:00
+            intHour += 12;
+        }
+        else if (meridiem == 'am' && intHour == 12) { // 12am (midnight) converts to 00:00
+            intHour = 0;
+        }
+
+        let intMinutes = parseInt(minutes);
+
+        newDate.setHours(intHour);
+        newDate.setMinutes(intMinutes);
+
+        dispatch(setForm({
+            field: 'sched_date',
+            value: newDate.toISOString()
         }));
+    }, [time, meridiem]);
+
+    const selectMeridiem = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        let {value} = e.currentTarget;
+        setMeridiem(value as "am" | "pm");
     }
 
-    const setTime = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        let {value, parentElement} = e.currentTarget;
+    const handleInput = (e: React.SyntheticEvent<HTMLInputElement, InputEvent>) => {
+        let {name, value} = e.currentTarget;
 
-        if(value.length > 2) {
+        let intVal = parseInt(value);
+        
+        if (isNaN(intVal) && value != '') {
+            return;
+        }
+        if (value.length > 2) {
             return;
         }
         
-        let range = parentElement!.className.replace('-','_') as 'time_from' | 'time_to';
-        let name = e.currentTarget.name as 'hour' | 'minute';        
-        let toInt = parseInt(value) || 0;
-
-        if(!isNaN(toInt) || value == '') {
-            let limitVal = Math.min((name == 'hour' ? 12 : 59), toInt);
-            
-            dispatch(setContent({
-                id: s_id,
-                params: {
-                    field: range,
-                    value: { ...section[range], [name]: limitVal }
-                }
-            }));
+        if (name == 'hour' && value == '00') {
+            value = '01';
         }
+        else if (name == 'hour' && intVal > 12) {
+            value = '12'
+        }
+        else if (name == 'minutes' && intVal > 59) {
+            value = '59'
+        }
+
+        setTime(prevTime => {
+            return {
+                ...prevTime,
+                [name]: value
+            }
+        });
     }
-
-
-    let {time_from, time_to} = section;
 
     return (
         <div className="todo-time">
-            <div className="flow">
+            {/* <div className="flow">
                 <FlowSVG color={color} />
-            </div>
+            </div> */}
             <div className="time-from">
-                <input type="text" className="time-input" value={time_from.hour || ''} name="hour" placeholder="HH" onInput={setTime}/>
+                <span>Schedule Time: </span>
+                <input type="text" className="time-input" value={time.hour} name="hour" placeholder="HH" onInput={handleInput}/>
                 <span className="seperator">:</span>
-                <input type="text" className="time-input" value={time_from.minute || ''} name="minute" placeholder="MM" onInput={setTime} />
-                <select className="time-cycle" name="timecycle" value={time_from.tc} onChange={setTC}>
+                <input type="text" className="time-input" value={time.minutes} name="minutes" placeholder="MM" onInput={handleInput} />
+                <select className="time-cycle" name="timecycle" value={meridiem} onChange={selectMeridiem}>
                     <option value="am">am</option>
                     <option value="pm">pm</option>
                 </select>
             </div>
-            <div className="time-to">
+            {/* <div className="time-to">
                 <input type="text" className="time-input" value={time_to.hour || ''} name="hour" placeholder="HH" onInput={setTime}/>
                 <span className="seperator">:</span>
                 <input type="text" className="time-input" value={time_to.minute || ''} name="minute" placeholder="MM" onInput={setTime} />
@@ -70,7 +107,7 @@ function SelectTime({s_id}: {s_id: number}) {
                     <option value="am">am</option>
                     <option value="pm">pm</option>
                 </select>
-            </div>
+            </div> */}
         </div>
     )
 }

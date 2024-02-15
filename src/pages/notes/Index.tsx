@@ -1,16 +1,26 @@
 import Home from "./Home";
 import { Provider } from "react-redux";
 import getStore from "../../store";
-import useAuth from "../../hooks/useAuth";
+import { useEffect, useState } from "react";
 
 function NotesIndex() {
-    let [user] = useAuth();
+    let [user, setUser] = useState(undefined);
+    useEffect(() => {
+        (async () => {
+            let user = await fetch('/api/user/getUser', {
+                method: 'post'
+            }).then(dat => dat.json());
 
-    let store = getStore(user); 
+            if (user.userid) {
+                setUser(user);
+            }
+        })();
+
+    }, []);
 
     return (
-        <Provider store={store}>
-            <Home />
+        <Provider store={getStore(user)}>
+            {user && <Home/>}
         </Provider>
     )
 }

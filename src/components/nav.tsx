@@ -1,13 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import {expandSidebar} from '../contexts/layoutContext';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { getDateTime } from '../assets/javascript/Time';
-import { Datetime } from '../../types/client/Time';
+import { Datetime } from '../assets/javascript/Time';
 
 import '../assets/components.css';
+import { StoreDispatch, StoreState } from '../store';
+import { User } from '../../types/client/contexts';
+import { logout } from '../contexts/userContext';
 
 function Nav() {
-    let dispath = useDispatch();
+    let user = useSelector<StoreState, User>(state => state.user);
+    let dispath = useDispatch<StoreDispatch>();
+
     const [time, setTime] = useState<Datetime>({
         year: "2000",
         month: "Jan",
@@ -32,6 +37,14 @@ function Nav() {
         location.href = url
     }
 
+    let userActions = 
+        (user.userid > 0)
+        ? <button className='nav_button' onClick={() => dispath(logout(user))}>Log out</button>
+        : [
+            <button key={'login'} className='login' onClick={() => redirect('/user/login')}>Login</button>,
+            <button key={'logout'} className='signup' onClick={() => redirect('/user/register')}>Sign Up</button>
+        ];
+
     return (
         <div className="nav">
             <div className="nav_icon" id="expand-sidebar" onClick={() => dispath(expandSidebar())}>
@@ -51,10 +64,7 @@ function Nav() {
                 </div>
             </div>
             <div className="user_actions">
-                <button className='theme'>Theme</button>
-                <div className='search'>Search</div>
-                <button className='login' onClick={() => redirect('/user/login')}>Login</button>
-                <button className='signup'>Sign Up</button>
+                {userActions}
             </div>
         </div>
     )    

@@ -9,7 +9,7 @@
 
 #login-form .header {
     height: 50px;
-    background-color: var(--input-green);
+    background-color: var(--green);
     border-bottom: 1px solid black;
     text-align: center;
     font-size: 24px;
@@ -34,4 +34,8 @@
 }
 #login-form #password .hide-text:hover {
     background-color: #dedddd;
+}
+
+#logged-in span {
+    font-size: 22px;
 }

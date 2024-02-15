@@ -1,6 +1,5 @@
-import { SetState, NoteState, GroupState, SetContentParams, section } from ".";
-import {getDateTime} from '../../../assets/javascript/Time';
-import { configureStore, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { SetState, NoteState, GroupState } from ".";
+import { configureStore, createSlice } from "@reduxjs/toolkit";
 
 const copyObject = (obj: any) => {
     let copy: any = {};
@@ -14,68 +13,21 @@ const copyObject = (obj: any) => {
     return copy;
 }
 
-export const initSection: section = {
-    id: 0,
-    time_from: {
-        hour: getDateTime().hour,
-        minute: getDateTime().minute,
-        tc: 'am'
-    },
-    time_to: {
-        hour: '',
-        minute: '',
-        tc: 'am'
-    },
-    description: ''
-}
-
 export const initNoteForm: NoteState = {
-    title: '',
-    group: "",
-    sched_date: getDateTime(),
-    content: [initSection],
+    note_id: 0,
+    title: "",
+    group: "Home`",
+    sched_date: new Date().toISOString(),
+    content: "",
     color: '#e9e7e7',
+    status: 'unfinished'
 }
 
 const initGroupState: GroupState = {
-    defaultGroups: ["Work", "School", "Grocery", "Workout"],
+    defaultGroups: ["Home", "Work", "School", "Grocery", "Workout"],
     new_group: "",
     isTooltipShown: false
 }
-
-// Async Thunks
-const createNote = createAsyncThunk(
-    'form/create',
-    async ({}, state) => {
-        // Validate Form
-        let note = state.getState() as NoteState;
-
-        let incompleteSections = [];
-        for (let section of note.content) {
-            if (section.description && section.time_from.hour && section.time_from.minute) {
-                continue;
-            }
-
-            incompleteSections.push(section.id);
-        }
-
-        if (incompleteSections.length > 0) {
-            return incompleteSections;
-        }
-
-        let res = await fetch('/api/notes/create', {
-            headers: {
-                "Content-Type": "application/json",
-            },
-            method: "post",
-        }).then(dat => dat.json());
-
-        console.log(res);
-        return 1;
-    }
-)
-
-
 
 // Form Context
 const formSlice = createSlice({
@@ -85,40 +37,23 @@ const formSlice = createSlice({
         setForm: (state, {payload}: {payload: SetState<NoteState>}) => {
             let {field, value} = payload;
 
-            state[field] = value;
+            return {
+                ...state,
+                [field]: value
+            }
         },
-        setContent: (state, {payload}: {payload: SetContentParams}) => {
-            let {id, params, remove} = payload;
-            let {content} = state;
+        resetForm: (state) => {
+            let {note_id, title, group, content, color, status} = initNoteForm;
+            let sched_date = new Date().toISOString();
             
-            if(remove) {
-                state.content = [...content.slice(0, id), ...content.slice(id + 1)];
-            }
-            else if(params) {
-                content[id] = {
-                    ...content[id],
-                    [params.field]: params.value
-                }
-
-                let nextSection = content[id+1];
-
-                if(content[id].description.length > 0 && !nextSection) {
-                    let new_section: section = copyObject(initSection);
-                    new_section.id = id + 1;
-
-                    content.push(new_section);
-                }
-                else if(content[id].description.length == 0 && nextSection.description.length == 0) {
-                    state.content = [...content.slice(0, id+1), ...content.slice(id+2)];
-                }
-            }
-        },
-    },
-    extraReducers(builder) {
-        builder.addCase(createNote.fulfilled, (state, action) => {
-            console.log(action.payload);
-            state;
-        });
+            state.color = color;
+            state.title = title;
+            state.note_id = note_id;
+            state.group = group;
+            state.sched_date = sched_date;
+            state.content = content;
+            state.status = status;
+        }
     },
 });
 
@@ -155,7 +90,7 @@ const store = configureStore({
     },
 });
 
-export const {setForm, setContent} = formSlice.actions;
+export const {setForm, resetForm} = formSlice.actions;
 export const {setNewGroup, toggleNGForm} = groupSlice.actions;
 
 export type CNState = ReturnType<(typeof store.getState)>

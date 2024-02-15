@@ -1,5 +1,5 @@
 import { Request, Connection, ConnectionConfig, TYPES as td, TediousTypes } from 'tedious';
-import { Column } from '../types/server/queries';
+import { Column, Data, Row } from '../types/server/queries';
 
 class Queries {
     private config: ConnectionConfig
@@ -54,7 +54,7 @@ class Queries {
      *      console.log(obj.notAProp) //undefined 
      *  ```
      */
-    convertDataToObj<T>(data: Column[]): T {
+    convertDataToObj<T= any>(data: Column[]): T {
         let obj = data.reduce((obj, curr) => {
             let name = curr.name;
             let value = curr.value;
@@ -73,10 +73,11 @@ class Queries {
      * @param table Name of table. Every table must be prefixed by their db indexing type i.e. (dbo.user)
      * @param columns Name of columns to choose from. leave [] or undefined to get all columns.
      * @param where List of objects containing data for where conditions e.g. [{//cond1}, {//cond2}]
-     * @param limit Limit how many results to get.
+     * @param options
      */
-    select (table: string, columns?: string[], where?: Column[], limit?: number) {
+    select (table: string, columns?: string[], where?: Column[], options?: { limit?: number, order_by?: string }) {
         let conn = new Connection(this.config);
+        let rows = [] as Row[];
 
         // wrap table and columns in brackets to avoid collision of reserved keywords
         let wrappedTable = this.wrapFields(table)[0];
@@ -95,11 +96,12 @@ class Queries {
             }).join(' and ');
         }
 
-        let trans = new Promise<Column[]>((resolve, reject) => {
+        let trans = new Promise<Row[]>((resolve, reject) => {
             let sql = (
-                `SELECT${limit ? " TOP "+limit+" " : ""}${wrappedColumns || '*'} `+
+                `SELECT${options?.limit ? " TOP "+options.limit+" " : ""}${wrappedColumns || '*'} `+
                 `FROM ${wrappedTable} `+
-                ((where) ? `WHERE ${wrappedConds}` : '')
+                ((where) ? `WHERE ${wrappedConds} ` : '')+
+                ((options?.order_by) ? `order by ${options.order_by}`: '')
             );
 
             let request = new Request(sql, function(err, rowCount) {
@@ -108,7 +110,8 @@ class Queries {
                     reject(err);
                 };
     
-                console.log(`Transaction Successful. Affected Rows: ${rowCount}`);
+                console.log(sql);
+                console.log(`Select Transaction Successful. Found Rows: ${rowCount}`);
                 conn.close();
             });
 
@@ -119,16 +122,20 @@ class Queries {
                 });
             }
 
+            request.on("requestCompleted", () => {
+                resolve(rows);
+            });
+
             request.on("row", (columns) => {
-                let data: Column[] = columns.map(column => {
+                let props = columns.map(column => {
                     let {value, metadata} = column;
                     let {colName: name} = metadata;
                     let type = td[metadata.type.name as keyof TediousTypes];
 
-                    return {name, type, value};
+                    return {name, type, value} as Column;
                 });
 
-                resolve(data);
+                rows = rows.concat([props]);
             });
 
             conn.on("connect", async (err) => {
@@ -199,6 +206,64 @@ class Queries {
 
         return trans;
     }
+
+    insert_batch (table: string, columns: Column[], data: Data<typeof columns>[]) {
+        let conn = new Connection(this.config);
+
+        let trans = new Promise<number>((resolve, reject) => {
+            conn.on('connect', (error) => {
+                if (error) reject(error);
+
+                let wrappedTable = this.wrapField(table);
+                let prepParams = this.prepParams(columns);
+
+                let sql = (`
+                    INSERT INTO ${wrappedTable} (${columns.map(c => c.name).join(', ')}) 
+                    VALUES (${prepParams.join(', ')})
+                `);
+
+                let requests = data.map(val => {
+                    let request = new Request(sql, (error) => {
+                        if (error) reject(error);
+
+                        conn.reset(error => {
+                            reject(error);
+                        });
+                    });
+                    
+                    columns.forEach(c => {
+                        console.table({fied: c.name, value: val[c.name]});
+                        request.addParameter(c.name, c.type, val[c.name]);
+                    });
+
+                    return request;
+                });
+
+                for(let request of requests) {
+                    conn.execSql(request);
+                }
+
+                // If all requests were executed successfully
+                let request = new Request('SELECT @@IDENTITY', (error) => {
+                    if (error) reject(error);
+
+                    conn.close();
+                });
+
+                request.on('row', columns => {
+                    console.log("Batch Insertion Transaction executed in table "+table);
+                    
+                    if(columns.length > 0) {
+                        resolve(columns[0].value);
+                    }
+                });
+            });
+            
+            conn.connect();
+        });
+
+        return trans;
+    }
     
     alter (table: string, data: Column[], where: Column[]) {
         let conn = new Connection(this.config);
@@ -229,7 +294,7 @@ class Queries {
                 let request = new Request(sql, (err, rowCount) => {
                     if(err) reject(err);
                     
-                    console.log(`Insert Transaction executed in table ${table}`);
+                    console.log(`Update Transaction executed in table ${table}`);
                     if(rowCount === 0) {
                         console.log('Warning: No Rows were updated');
                     }
@@ -299,10 +364,12 @@ class Queries {
                 where.forEach(cond => {
                     request.addParameter(cond.name, cond.type, cond.value);
                 });
-
+                console.log(sql);
                 conn.execSql(request);
             });
         });
+
+        conn.connect();
 
         return trans;
     }

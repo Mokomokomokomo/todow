@@ -5,9 +5,8 @@ import Warning from "./warning";
 import GroupedNotes from "./groupedNotes";
 import { StoreState } from "../store";
 import { Layout } from "../../types/client/contexts";
-import { SidebarProps } from "../../types/client/component";
 
-function Sidebar({createNote}: SidebarProps) {
+function Sidebar({createNewTask}: {createNewTask: any}) {
     let layout = useSelector<StoreState, Layout>(state => state.layout);
     // let user = useSelector<StoreState, User>(state => state.user);
     // let dispatch = useDispatch<StoreDispatch>();
@@ -17,34 +16,22 @@ function Sidebar({createNote}: SidebarProps) {
         true
     );
 
-    useEffect(() => {
-        console.log(layout);
-        
-    }, [layout]);
-
     return (
         <div className={`sidebar${(layout.sidebarExpanded ? '' : ' shrink')}`}>
             <div className={`user_actions`}>
-                <div className={"nav_button"}  id="add_todo" onClick={createNote}>
+                <div className={"nav_button"}  id="add_todo" onClick={createNewTask}>
                     <img
                         src={"/create_note.svg"} 
                         width={30} 
                         height={30} 
                         alt="create_note.svg"
                     />
-                    <span>Create New Todo List</span>
+                    <span>Create New Task</span>
                     {/* {layout.sidebarExpanded && <span>Create New Todo List</span>} */}
                 </div>
             </div>
             {/* grouped notes go here */}
             <div className={"grouped_notes"}>
-                {
-                    showSessionWarning && 
-                    <Warning 
-                        message={"You are not logged in! Please note that you may have limited access to features."} 
-                        hideWarning={() => setShowSessionWarning(false)}
-                    />
-                }
                 <GroupedNotes />
             </div>
         </div>

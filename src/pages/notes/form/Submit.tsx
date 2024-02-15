@@ -1,5 +1,5 @@
-import { useSelector } from "react-redux";
-import { CNState } from "./store";
+import { useDispatch, useSelector } from "react-redux";
+import { CNDispatch, CNState, resetForm } from "./store";
 import {ConvertOptions, RGBA} from '.';
 import { useEffect, useState } from "react";
 
@@ -15,8 +15,8 @@ const splitByLength = (str: string, length: number) => {
     return res;
 }
 
-const convertHexToRGBA = (hex: string, options: ConvertOptions = {}): string | RGBA | undefined => {
-    let {returnString = false, valueType = "numerical"} = options;
+export const convertHexToRGBA = (hex: string, options: ConvertOptions = {}): string | RGBA | undefined => {
+    let {returnString = false} = options;
 
     let pattern = hex[0] == '#' ? hex.slice(1) : hex;
     
@@ -45,13 +45,12 @@ const convertHexToRGBA = (hex: string, options: ConvertOptions = {}): string | R
         return undefined;
     }
 
-    let [red, blue, green, alpha]: number[] | string[] = values;
-    if (valueType == "numerical") {
-        red = parseInt(values[0],16);
-        green = parseInt(values[1],16);
-        blue = parseInt(values[2],16);
-        alpha = Math.min(100, parseInt(values[3] || 'FF', 16));
-    }
+    let [red, blue, green, alpha]: string[]|number[] = values;
+
+    red = parseInt(values[0],16);
+    green = parseInt(values[1],16);
+    blue = parseInt(values[2],16);
+    alpha = Math.min(100, parseInt(values[3] || 'FF', 16));
     
     if (returnString) {
         return `rgba(${red} ${green} ${blue} / ${alpha}%)`;
@@ -71,14 +70,41 @@ const convertHexToRGBA = (hex: string, options: ConvertOptions = {}): string | R
     } as RGBA;
 }
 
-function Submit() {
-    let color = useSelector<CNState, string>(state => state.form.color!);
-    let shade = convertHexToRGBA(color) as RGBA;
+function Submit({updateTask, returnToView}: {updateTask: () => Promise<void>, returnToView: any}) {
+    let {sched_date, content, title, group, status, color} = useSelector<CNState, CNState['form']>(state => state.form);
+    let dispatch = useDispatch<CNDispatch>();
+
+    let shade = convertHexToRGBA(color!) as RGBA;
     let [bg, setBG] = useState(color);
     
     useEffect(() => {
         setBG(color);
     }, [color]);
+    
+    
+    const submitHandler = async () => {
+        if (!title) {
+            alert('Missing title.');
+            return;
+        };
+
+        let res = await fetch('/api/task/create', {
+            body: JSON.stringify({
+                title, content, sched_date, group, status, color
+            }),
+            method: 'post',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(dat => dat.json());
+
+        if (res.success) {
+            dispatch(resetForm());
+
+            updateTask();
+            returnToView();
+        }
+    }
 
     const darken = () => {
         shade.adjust(-35)
@@ -95,7 +121,7 @@ function Submit() {
     } as React.CSSProperties;
 
     return (
-        <div className="cw-center" style={style} id="submit-note" onMouseEnter={darken} onMouseLeave={lighten}>
+        <div className="cw-center" style={style} id="submit-note" onMouseEnter={darken} onMouseLeave={lighten} onClick={submitHandler}>
             <span>Create</span>
         </div>
     )

@@ -1,7 +1,3 @@
-import {
-    CreateNoteProps,
-} from "./index";
-
 import { Provider } from "react-redux";
 import store from "./store";
 import Header from "./Header";
@@ -12,7 +8,7 @@ import Group from "./Group";
 import NoteContent from "./NoteContent";
 import Submit from "./Submit";
 
-function CreateNote({maxTitleLength = 20}: CreateNoteProps) {
+function CreateNote({maxTitleLength = 20, updateTask, returnToView}: {maxTitleLength?: number, updateTask: () => Promise<void>, returnToView: any}) {
     let colorOptions = [
         '#db6666',
         '#5690d7',
@@ -33,7 +29,7 @@ function CreateNote({maxTitleLength = 20}: CreateNoteProps) {
                     <Group  />
                     <NoteContent />
                 </div>
-                <Submit />
+                <Submit {...{updateTask, returnToView}} />
             </form>
         </Provider>
     )
