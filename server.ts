@@ -15,6 +15,7 @@ import { EntryServer } from './src/entry-server';
 
 // import api or server routes here
 import user from './server/user';
+import task from './server/task';
 
 const getProcess = (field: string, type: "string" | "int" | "float" = "string") => {
     let value = process.env[field];
@@ -34,10 +35,10 @@ const getProcess = (field: string, type: "string" | "int" | "float" = "string") 
     return undefined;
 }
 
-if (!process.env.SECRET_KEY) {
-    console.error("JWT secret key was not found in dotenv file at the root folder. Please ensure that one is provided for security reasons.");
-    process.exit(1);
-}
+// if (!process.env.SECRET_KEY) {
+//     console.error("JWT secret key was not found in dotenv file at the root folder. Please ensure that one is provided for security reasons.");
+//     process.exit(1);
+// }
 
 async function start() {
     let port = getProcess('PORT', "int") as number || 3000;
@@ -87,17 +88,19 @@ async function start() {
 
     app.use(vite.middlewares);
 
-    // redirect base urls to landing routes if needed 
+    // redirect to login if no session or home if session
+    // ignore session check for register page
     app.use('/', (req, res, next) => {
-        if(req.originalUrl == '/') {
-            res.redirect('/notes');
-        }
-        else {
+        if (req.originalUrl.startsWith('/api/')) {
             next();
         }
-    });
-    app.use('/user', (req, res, next) => {
-        if(req.originalUrl == '/user') {
+        else if (req.originalUrl == '/user/register') {
+            next();
+        }
+        else if (req.originalUrl == '/user/login' && req.cookies.uuid) {
+            res.redirect('/notes');
+        }
+        else if (req.originalUrl != '/user/login' && !req.cookies.uuid) {
             res.redirect('/user/login');
         }
         else {
@@ -137,8 +140,9 @@ async function start() {
 
     });
 
-    // call all api routes here simply call the imported method as is
+    // call all api routes here
     app.use('/api/user', user(dbConfig));
+    app.use('/api/task', task(dbConfig));
 
     app.listen(port, () => {
         console.log('Server started at http://localhost:3000/');
