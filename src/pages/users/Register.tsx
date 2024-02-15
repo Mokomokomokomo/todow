@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { User } from '../../../types/client/contexts';
 import { StoreState, StoreDispatch } from '../../store';
@@ -8,14 +8,13 @@ import { register } from '../../contexts/userContext';
 function Register() {
     let initUser = useSelector<StoreState, User>(state => state.user);
     let dispatch = useDispatch<StoreDispatch>();
-    let [user, setUser] = useState<User>({...initUser, password: ""});
+    let [user, setUser] = useState<User>({
+        ...initUser, 
+        password: "",
+        username: "",
+        email: ""
+    });
     let [isTextHidden, setIsTextHidden] = useState(true);
-
-    useEffect(() => {
-        if(initUser.userid > 0) {
-            location.href = '/notes'
-        }
-    }, [initUser.userid]);
 
     let {username, password, email} = user;
 
@@ -54,24 +53,34 @@ function Register() {
 
     return(
         <div className="cw-center fill-parent">
-            <form id="login-form">
-                <div className="header">Register</div>
-                <div className="cwc fill-parent" id="body">
-                    <div className='cw text-input' id="username">
-                        <input type="text" name='username' placeholder="Username" value={username} onInput={inputHandler} required />
+            {
+                (user.userid <= 0)
+                ? (
+                    <form id="login-form">
+                        <div className="header">Register</div>
+                        <div className="cwc fill-parent" id="body">
+                            <div className='cw text-input' id="username">
+                                <input type="text" name='username' placeholder="Username" value={username} onInput={inputHandler} required />
+                            </div>
+                            <div className='cw text-input' id="password">
+                                <input type={isTextHidden ? "password" : "text"} name='password' placeholder="Password" value={password} onInput={inputHandler} required />
+                                <button className="hide-text" title={passTitle} onClick={togglePassword} style={passStyle}>{passText}</button>
+                            </div>
+                            <div className='cw text-input' id="email">
+                                <input type="text" name='email' placeholder='Email' value={email} onInput={inputHandler} required />
+                            </div>
+                            <div className="cw button-input" style={{marginTop: 30}}>
+                                <button onClick={submitHandler}>Create Account</button>
+                            </div>
+                        </div>
+                    </form>
+                )
+                : (
+                    <div id="logged-in">
+                        <span>You are already Logged In. <a href="/notes">Click here to return to Main Page</a></span>
                     </div>
-                    <div className='cw text-input' id="password">
-                        <input type={isTextHidden ? "password" : "text"} name='password' placeholder="Password" value={password} onInput={inputHandler} required />
-                        <button className="hide-text" title={passTitle} onClick={togglePassword} style={passStyle}>{passText}</button>
-                    </div>
-                    <div className='cw text-input' id="email">
-                        <input type="text" name='email' placeholder='Email' value={email} onInput={inputHandler} required />
-                    </div>
-                    <div className="cw button-input" style={{marginTop: 30}}>
-                        <button onClick={submitHandler}>Create Account</button>
-                    </div>
-                </div>
-            </form>
+                )
+            }
         </div>
     )
 }

@@ -13,7 +13,7 @@ interface TextAreaProps {
     /**
      * Set State Function of Parent which determines the value
      */
-    setState: (id: any, value: string) => void;
+    setState: (value: string) => void;
 }
 
 function AdjustableTextArea ({id, value, placeholder, setState}: TextAreaProps) {
@@ -33,7 +33,7 @@ function AdjustableTextArea ({id, value, placeholder, setState}: TextAreaProps) 
         let {value} = e.currentTarget;
 
         setDescHeigth(`auto`);
-        setState(id, value);
+        setState(value);
     }
 
     return (

@@ -1,35 +1,27 @@
 import { Provider } from "react-redux";
-import {getStore} from "../../store";
-
-import useAuth from "../../hooks/useAuth";
+import getStore from "../../store";
 
 import Login from "./Login";
-import Error404 from "../Error404";
 import Register from "./Register";
+import Error404 from "../Error404";
+
 function UserIndex({path}: {path: string}) {
-    let [user, finished] = useAuth();
-
-    console.log(user);
-
     let children: JSX.Element;
     
-    if(!finished) {
-        children = <div></div>
+    /** define paths for urls */
+    let pages = {
+        '/login': <Login />,
+        '/register': <Register />,
     }
-    else if(path == '/login') {
-        children = <Login />
-    }
-    else if (path == '/register') {
-        children = <Register />
-    }
-    else {
+    type pageRoute = keyof (typeof pages);
+    children = pages[path as pageRoute];
+    
+    if(!children) {
         children = <Error404 />
     }
-
-    let store = getStore(user && user.userid > 0 ? user : undefined);
-
+    
     return (
-        <Provider store={store}>
+        <Provider store={getStore()}>
             {children}
         </Provider>
     )

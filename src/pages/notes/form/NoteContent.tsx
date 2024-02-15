@@ -1,21 +1,27 @@
-import { useSelector } from "react-redux";
-import { CNState } from "./store";
-import { section } from ".";
+import { useDispatch, useSelector } from "react-redux";
+import { CNDispatch, CNState, setForm } from "./store";
 
-import Section from "./Section";
+import AdjustableTextArea from "../../../components/AdjustableTextArea";
+import SelectTime from "./SelectTime";
 
 function NoteContent() {
-    let content = useSelector<CNState, section[]>(state => state.form.content);
+    let sched_date = useSelector<CNState, string>(note => note.form.sched_date);
+    let content = useSelector<CNState, string>(note => note.form.content);
+    let dispatch = useDispatch<CNDispatch>()
 
-    let sections = content.map((section) => {
-        return (
-            <Section key={`section-${section.id}`} section={section}/>
-        )
-    });
+    const setDescription = (value: string) => {
+        dispatch(setForm({
+            field: "content",
+            value: value
+        }));
+    }
 
     return (
         <div className="cw-mult" id="content">
-            {sections}
+            <SelectTime {...{sched_date}} />
+            <div className="todo-description">
+                <AdjustableTextArea value={content} id={0} setState={setDescription} placeholder="Descrtiption" />
+            </div>
         </div>
     )
 }

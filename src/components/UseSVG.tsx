@@ -1,6 +1,6 @@
-function FlowSVG({color}: {color: string}) {
+function FlowSVG({color}: {color?: string}) {
     return (
-        <svg width="283" height="733" viewBox="0 0 283 733" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 283 733" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g id="group_1">
                 <rect id="circle" x="91" width="100" height="100" rx="50" fill={color || "#E9AAAA"}/>
                 <rect id="circle_2" x="91" y="150" width="100" height="100" rx="50" fill={color || "#E9AAAA"}/>

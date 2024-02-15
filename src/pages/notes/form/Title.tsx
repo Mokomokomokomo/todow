@@ -11,6 +11,10 @@ function Title ({maxTitleLength}: {maxTitleLength: number}) {
     const updateTitle = (e: React.KeyboardEvent<HTMLInputElement>) => {
         let {value} = e.currentTarget;
 
+        if (value.length > maxTitleLength) {
+            return;
+        }
+
         dispatch(setForm({field: "title", value}))
     }
 
