@@ -1,98 +1,68 @@
-import { pbkdf2Sync, randomBytes } from 'node:crypto';
+import { pbkdf2Sync, randomBytes, randomUUID } from 'node:crypto';
+// import {JwtPayload, TokenExpiredError, sign, verify} from 'jsonwebtoken';
+
 import { Router } from "express";
 import { ConnectionConfig, TYPES as td } from "tedious";
 import Queries from "./queries";
-import {JwtPayload, TokenExpiredError, sign, verify} from 'jsonwebtoken';
 import { UserObj } from '../types/server';
-import { Column } from '../types/server/queries';
 
-const createToken = async (userid: number): Promise<string> => {
-    const token = sign({
-        userid: userid,
-        role: 'user',
-        
-    }, process.env.SECRET_KEY as string, {
-        issuer: "todow",
-        subject: `${userid}`,
-        expiresIn: (12 * 60 * 60),
-    });
-
-
-    return token;
+class PasswordMatchError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "PasswordMatchError";
+    }
 }
 
 function userRouter(conn: ConnectionConfig) {
     let router = Router();
     let transact = new Queries(conn);
 
-    router.post('/validate', async (req, res) => {
-        let cookies = req.cookies;
-        let {token} = req.cookies;
+    router.post('/getuser', async (req,res) => {
+        let {uuid} = req.cookies;
 
-        try {
-            if(cookies.token) {
-                let payload = verify(token, process.env.SECRET_KEY as string) as JwtPayload;
+        console.log(uuid);
 
-                let where: Column<UserObj>[] =  [
-                    {name: 'id', type: td.Int, value: payload['userid']}
-                ]
+        if (uuid) {
+            let data = await transact.select("dbo.session", [], [
+                {name: 'uuid', type: td.NVarChar, value: uuid}
+            ], {limit: 1});
 
-                // get relevant user data
-                let data = await transact.select('dbo.user', [], where, 1);
+            console.log(data);
 
-                if (data.length == 0) {
-                    console.log('No Rows Found');
-                    res.json({success: false});
-                }
-
-                let user = transact.convertDataToObj(data) as UserObj;
-
+            // no uuid in database, delete uuid
+            if (data.length == 0) {
+                res.clearCookie('uuid');
+            }
+            else {
+                let user = transact.convertDataToObj(data[0]) as UserObj;
                 res.json({
-                    success: true,
-                    user: {
-                        userid: user.id,
-                        username: user.username,
-                        email: user.email,
-                    }
+                    userid: user.id
                 });
             }
-            else {
-                console.log('No Token Found');
-                res.json({success: false});
-            }
-
         }
-        catch (e) {
-            if (e instanceof TokenExpiredError) {
-                console.log(`Token expired on ${e.expiredAt}.`);
-                res.clearCookie('token');
-            }
-            else {
-                console.log(e);
-            }
-            
+        else {
             res.json({
-                success: false,
+                userid: 0
             });
         }
     });
 
     router.post('/logout',async (req, res) => {
-        let token = req.cookies.token as string;
-        try {
-            if(token) {
-                res.clearCookie('token');
+        let {uuid} = req.cookies;
 
-                res.json({
-                    success: true
-                });
-            }
+        try {
+            
+            await transact.delete('dbo.session', [
+                {name: 'uuid', type: td.NVarChar, value: uuid}
+            ]);
+
+            res.clearCookie('uuid');
+            res.json({
+                success: true
+            });
         }
         catch (e) {
-            console.log(e);
-            res.json({
-                success: false,
-            })
+            throw e;
         }
     });
 
@@ -102,24 +72,33 @@ function userRouter(conn: ConnectionConfig) {
         try {
             let data = await transact.select("dbo.user", [], [
                 {name: 'username', type: td.VarChar, value: username}
-            ], 1);
+            ], {limit: 1});
 
             if (data.length == 0) {
                 throw new Error("No Rows Found");
             }
 
-            let user = transact.convertDataToObj(data) as UserObj;
+            let user = transact.convertDataToObj(data[0]) as UserObj;
             let bufferSalt = Buffer.from(user.salt, "hex");
             let hashedPassword = pbkdf2Sync(password, bufferSalt, 10000, 32, "sha256").toString('hex');
 
             if (hashedPassword != user.password) {
-                throw new Error("Password do not match");
+                throw new PasswordMatchError("Password doesn't match");
             }
 
             // create token
-            let token = await createToken(user.id);
+            // let token = await createToken(user.id);
+            // res.cookie('token', token, {httpOnly: true});
+            let uuid = randomUUID();
+            let expires_in = new Date(Date.now() + (7 * 24 * 60 * 60 * 1000));
+            res.cookie('uuid', uuid, {httpOnly: true, expires: expires_in});
 
-            res.cookie('token', token, {httpOnly: true});
+            await transact.insert_once("dbo.session", [
+                {name: 'uuid', type: td.UniqueIdentifier, value: uuid},
+                {name: 'id', type: td.Int, value: user.id},
+                {name: 'expires_in', type: td.DateTime, value: expires_in.toISOString()}
+            ]);
+
 
             res.json({
                 success: true,
@@ -129,7 +108,8 @@ function userRouter(conn: ConnectionConfig) {
         catch (e) {
             console.log(e);
             res.json({
-                success: false
+                success: false,
+                error: e
             });
         }
     });
@@ -146,9 +126,8 @@ function userRouter(conn: ConnectionConfig) {
                 {name: 'email', type: td.VarChar, value: req.body['email']}
             ]);
 
-            let token = createToken(userid);
-
-            res.cookie('token', token, {httpOnly: true});
+            // let token = createToken(userid);
+            // res.cookie('token', token, {httpOnly: true});
             
             res.json({
                 success: true,
